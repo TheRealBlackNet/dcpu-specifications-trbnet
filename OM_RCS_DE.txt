@@ -1,0 +1,53 @@
++===============================================================================================+
+| DCPU-16 BEREITE HARDWARE SPEZIFIKATIONEN                                                      |
++===============================================================================================+
+| DEUTSCHE VERSION                                                                              |
++===============================================================================================+
+
++----------------------+------------------------------------------------------------------------+
+| STEUERDÜSEN          | Orbital Mechanics - Reaction Control System                            |
++----------------------+------------------------------------------------------------------------+
+| Feld                 | Wert                                                                   |
++----------------------+------------------------------------------------------------------------+
+| Name                 | Orbital Mechanics - Steuerdüsen                                        |
+| Logo                 |                                                                        |
+|                      |     ██████╗ ███╗   ███╗                                                |
+|                      |    ██╔═══██╗████╗ ████║                                                |
+|                      |    ██║   ██║██╔████╔██║                                                |
+|                      |    ██║   ██║██║╚██╔╝██║                                                |
+|                      |    ╚██████╔╝██║ ╚═╝ ██║                                                |
+|                      |     ╚═════╝ ╚═╝     ╚═╝                                                |
+| Slogan               | Du kommst ja balb wieder hier vorbei.                                  |
+| ID                   | 0x0000002F                                                             |
+| Version              | 0x0002, 0x0004, 0x0009                                                 |
+| Hersteller ID        | 0x00062633                                                             |
+| Hersteller           | Orbital Mechanics Corporation                                          |
++----------------------+------------------------------------------------------------------------+
+| Interrupts           |                                                                        |
++----------------------+------------------------------------------------------------------------+
+| Statusabfrage        | A = 0x0001 Gibt Status in A zurück:                                    |
+|                      | 	0xE0E0 Offline,                                                     |
+|                      | 	0x0001 Ready,                                                       |
+|                      |    0xF111 DRY (Kein Treibstoff) und in B den Tankfüllstand.            |
+|                      |                                                                        |
+|                      | Version 0x0008 fügt zusätzlich ERROR 0xFFFF hinzu, wenn zu             |
+|                      | viel Bewegung vorliegt, um genutzt zu werden.                          |
+| Triebwerkszündung    | A = 0x0001                                                             |
+|                      | C = Dauer in ms                                                        |
+|                      | XYZ = Richtung:                                                        |
+|   Version 0x0002     | Richtung ist nur 0 oder 1.                                             |
+|   Version 0x0004     | Richtung ist ein Wert zwischen 0x0000 und 0x00FF.                      |
+|   Version 0x0009     | Richtung ist ein Wert zwischen 0x0000 und 0xFFFF.                      |
+|                      | Zusätzlicher Autostop-Interrupt: C = 0xFFFF                            |
+|                      | verbraucht mehr Treibstoff, kann aber Bewegungen unter 1 Einheit/min   |
+|                      | und Gesamtrotation unter 5 Grad/min unterdrücken. Diese Version hat    |
+|                      | zusätzlichen Status ERROR für zu hohe Bewegungen, um genutzt zu werden.|
++----------------------+------------------------------------------------------------------------+
+| Statuscodes          | 0x0000 OFFLINE, 0x0001 READY, 0x0D57 DRY, 0xFFFF ERROR                 |
++----------------------+------------------------------------------------------------------------+
+| Legal Disclaimer     | OMCorp kann nicht für den Verbrauch von Treibstoff haftbar gemacht     |
+|                      | werden. Der Raumschiffbetreiber trägt die Verantwortung für die        |
+|                      | Treibstoffversorgung.                                                  |
++----------------------+------------------------------------------------------------------------+
+| Copyright            | 1984, 1984, 1986                                                       |
++----------------------+------------------------------------------------------------------------+

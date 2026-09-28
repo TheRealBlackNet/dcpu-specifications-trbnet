@@ -1,0 +1,106 @@
+    .---------------------. 
+----! DCPU-16 INFORMATION !-----------------------------------------------------
+    '---------------------' 
+
+Name: Hochgenaues GME-Gyroskop
+ID: 0x322bcebd
+Version: 0x0800
+Hersteller: 0x7c92d14c (GME - Glassworks Measurement Equipment)
+
+               ______  ____    ____  ________ 
+             .' ___  ||_   \  /   _||_   __  |
+            / .'   \_|  |   \/   |    | |_ \_|
+            | |   ____  | |\  /| |    |  _| _ 
+            \ `.___]  |_| |_\/_| |_  _| |__/ |
+             `._____.'|_____||_____||________| Industries
+
+    .-------------. 
+----! BESCHREIBUNG !------------------------------------------------------------
+    '-------------' 
+
+Das GME-Gyroskop ist ein Präzisionsmessgerät, das mit dem DCPU-16 kompatibel
+ist. Es misst sowohl translatorische Driftbewegungen als auch
+Rotationsbewegungen entlang drei Achsen (A, B, C für Drift; X, Y, Z für
+Rotation). Das Gerät unterstützt periodische Interrupts, limitbasierte
+Interrupts und mehrere Datenabrufmodi, einschließlich vorzeichenbehafteter,
+vorzeichenloser und vorzeichenreiner Darstellungen. Alle Messdaten werden
+auf die nächste ganze Längeneinheit für Drift und auf das nächste
+Hundertstel Grad pro Minute für Rotation gerundet.
+
+    .--------------------. 
+----! INTERRUPT-VERHALTEN !-----------------------------------------------------
+    '--------------------' 
+
+A, B, C, X, Y, Z, I, J beziehen sich auf die Register des DCPU.
+
+A: Verhalten:
+
+ 0  Gerät abfragen. Setzt B auf den aktuellen Zustand (siehe unten) und C
+    auf den letzten Fehler seit der letzten Abfrage.
+
+ 1  Periodisches Interrupt-Intervall setzen. Liest X als Intervall in
+    Millisekunden. Wenn X 0 ist, werden periodische Interrupts deaktiviert.
+
+ 2  Daten-Interrupt aktivieren. Liest X als Interrupt-Nachricht. Wenn X
+    ungleich Null ist, werden Interrupts mit Nachricht X aktiviert. Wenn X
+    Null ist, werden Interrupts deaktiviert. Wenn aktiviert, wird ein
+    Interrupt ausgelöst, sobald neue Messdaten verfügbar sind. Register A
+    enthält die Driftbewegungen (gerundet auf ganze Längeneinheiten) für die
+    Achsen A, B, C. Die Register X, Y, Z enthalten die Rotationsbewegungen
+    (gerundet auf Hundertstel Grad pro Minute). Alle Werte sind
+    vorzeichenbehaftet.
+
+ 3  Vorzeichenbehaftete Daten lesen. Setzt A, B, C auf die
+    vorzeichenbehafteten Driftbewegungen und X, Y, Z auf die
+    vorzeichenbehafteten Rotationsbewegungen (Hundertstel Grad pro Minute).
+
+ 4  Vorzeichenlose Daten lesen. Setzt A, B, C auf die vorzeichenlosen
+    Driftbewegungen und X, Y, Z auf die vorzeichenlosen
+    Rotationsbewegungen.
+
+ 5  Vorzeichenreine Daten lesen. Setzt A, B, C, X, Y, Z auf 0 (positiv)
+    oder 1 (negativ), was nur das Vorzeichen jeder Messung angibt.
+
+ 6  ABC-Bewegung lesen. Setzt A, B, C auf die vorzeichenbehafteten
+    Driftbewegungen entlang der Achsen A, B, C.
+
+ 7  ABC-Rotation lesen. Setzt A, B, C auf die vorzeichenbehafteten
+    Rotationsbewegungen um die Achsen A, B, C.
+
+ 8  XYZ-Bewegung lesen. Setzt X, Y, Z auf die vorzeichenbehafteten
+    Driftbewegungen entlang der Achsen X, Y, Z.
+
+ 9  XYZ-Rotation lesen. Setzt X, Y, Z auf die vorzeichenbehafteten
+    Rotationsbewegungen um die Achsen X, Y, Z.
+
+10  Gesamtbewegung und -rotation lesen. Berechnet die pythagoreische
+    Gesamtsumme aller Driftbewegungen und speichert sie in B; berechnet die
+    pythagoreische Gesamtsumme aller Rotationsbewegungen und speichert sie
+    in C.
+
+11  Limits setzen. Liest X als Minimal-Limit und Y als Maximal-Limit für die
+    ausgewählte Messachse (B wählt die Achse: 0 = A, 1 = B, 2 = C, 3 = X,
+    4 = Y, 5 = Z). Wenn eine Messung das Maximal-Limit überschreitet oder
+    unter das Minimal-Limit fällt, wird ein Interrupt ausgelöst (falls
+    Interrupts aktiviert sind).
+
+12  Zustand abrufen. Setzt B auf den aktuellen Zustandscode (siehe unten).
+
+    .-------------. 
+----! ZUSTANDSCODES !-----------------------------------------------------------
+    '-------------' 
+
+0x0000  OFFLINE          Das Gerät ist ausgeschaltet oder nicht initialisiert.
+0x0001  MESSURING        Das Gerät misst aktiv.
+0x0002  READY            Das Gerät ist initialisiert und bereit für Befehle.
+0x0003  ERROR            Ein Hardware- oder Softwarefehler ist aufgetreten.
+0x0004  TILT_MOVEMENT    Das Gerät hat eine signifikante translatorische
+                         Drift festgestellt, die die konfigurierten Limits
+                         überschreitet.
+0x0005  TILT_ROTATION    Das Gerät hat eine signifikante Rotationsbewegung
+                         festgestellt, die die konfigurierten Limits
+                         überschreitet.
+
+COPYRIGHT 1989 GME - GLASSWORKS MEASUREMENT EQUIPMENT
+ALLE RECHTE VORBEHALTEN
+NICHT WEITERGEBEN

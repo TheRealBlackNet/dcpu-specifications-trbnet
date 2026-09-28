@@ -37,3 +37,11 @@ The implementation of these specifications in your own commerical work is permit
 [1]: http://www.rockpapershotgun.com/2013/08/19/0x10c-cancelled-for-good-but-fans-plan-to-do-it-anyway/
 [2]: https://github.com/trending?l=dcpu-16-asm
 [3]: http://www.reddit.com/r/dcpu16/comments/1zykmx/hey_guys_what_sort_of_copyright_is_the_dcpu16/cfy7igf
+
+## Extentions by TRB
+
+
+
+
+
+

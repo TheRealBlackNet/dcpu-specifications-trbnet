@@ -1,0 +1,50 @@
++===============================================================================================+
+| DCPU-16 READY HARDWARE SPECIFICATIONS                                                         |
++===============================================================================================+
+| ENGLISH VERSION                                                                               |
++===============================================================================================+
+
++----------------------+------------------------------------------------------------------------+
+| REACTION CONTROL     | Orbital Mechanics - Reaction Control System                            |
++----------------------+------------------------------------------------------------------------+
+| Field                | Value                                                                  |
++----------------------+------------------------------------------------------------------------+
+| Name                 | Orbital Mechanics - Reaction Control System                            |
+| Logo                 |                                                                        |
+|                      |     ██████╗ ███╗   ███╗                                                |
+|                      |    ██╔═══██╗████╗ ████║                                                |
+|                      |    ██║   ██║██╔████╔██║                                                |
+|                      |    ██║   ██║██║╚██╔╝██║                                                |
+|                      |    ╚██████╔╝██║ ╚═╝ ██║                                                |
+|                      |     ╚═════╝ ╚═╝     ╚═╝                                                |
+| Slogan               | You will come around to us.                                            |
+| ID                   | 0x0000002F                                                             |
+| Version              | 0x0002, 0x0004, 0x0009                                                 |
+| Manufacturer ID      | 0x00062633                                                             |
+| Manufacturer         | Orbital Mechanics Corporation                                          |
++----------------------+------------------------------------------------------------------------+
+| Interrupts           |                                                                        |
++----------------------+------------------------------------------------------------------------+
+| Status query         | A = 0x0001 Returns status:                                             |
+|                      |    0xE0E0 Offline,                                                     |
+|                      |    0x0001 Ready,                                                       |
+|                      |    0xF111 DRY (No fuel), and tank fill level in B                      |
+|                      |    
+|                      | Version 0x0008 also adds ERROR for too much movement to be used.       |
+| Engine ignition      | C = duration in ms; XYZ = direction.                                   |
+|   Version 0x0002     | Direction is only 0x0000 or 0x0001.                                    |
+|   Version 0x0004     | Direction is a value between 0x0000 and 0x00FF.                        |
+|   Version 0x0009     | Direction is a value between 0x0000 and 0xFFFF.                        |
+|                      | Additional autostop interrupt: C = 0xFFFF                              |
+|                      | consumes more fuel, but can suppress                                   |
+|                      | movements below 1 unit/min and total rotation below 5 deg/min.         |
+|                      | This version has additional status ERROR for too much movement to be   |
+|                      | used.                                                                  |
++----------------------+------------------------------------------------------------------------+
+| Status Codes         | 0x0000 OFFLINE, 0x0001 READY, 0x0D57 DRY, 0xFFFF ERROR                 |
++----------------------+------------------------------------------------------------------------+
+| Legal Disclaimer     | OMCorp cannot be held liable for fuel consumption. The spacecraft      |
+|                      | operator is responsible for fuel supply.                               |
++----------------------+------------------------------------------------------------------------+
+| Copyright            | 1984, 1984, 1986                                                       |
++----------------------+------------------------------------------------------------------------+

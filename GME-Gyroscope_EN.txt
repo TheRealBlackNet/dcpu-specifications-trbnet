@@ -1,0 +1,99 @@
+    .---------------------. 
+----! DCPU-16 INFORMATION !-----------------------------------------------------
+    '---------------------' 
+
+Name: Highly Accurate GME-Gyroscope
+ID: 0x322bcebd
+Version: 0x0800
+Manufacturer: 0x7c92d14c (GME - Glassworks Measurement Equipment)
+
+               ______  ____    ____  ________ 
+             .' ___  ||_   \  /   _||_   __  |
+            / .'   \_|  |   \/   |    | |_ \_|
+            | |   ____  | |\  /| |    |  _| _ 
+            \ `.___]  |_| |_\/_| |_  _| |__/ |
+             `._____.'|_____||_____||________| Industries
+
+    .-------------. 
+----! DESCRIPTION !-------------------------------------------------------------
+    '-------------' 
+
+The GME-Gyroscope is a precision measurement device compatible with the DCPU-16.
+It measures both translational drift movements and rotational movements along
+three axes (A, B, C for drift; X, Y, Z for rotation). The device supports
+periodic interrupts, limit-based interrupts, and multiple data retrieval modes
+including signed, unsigned, and sign-only representations. All measurement data
+is rounded to the nearest whole length unit for drift and to the nearest
+hundredth of a degree per minute for rotation.
+
+    .--------------------. 
+----! INTERRUPT BEHAVIOR !------------------------------------------------------
+    '--------------------' 
+
+A, B, C, X, Y, Z, I, J below refer to the registers on the DCPU.
+
+A: Behavior:
+
+ 0  Poll device. Sets B to the current state (see below) and C to the last
+    error since the last device poll.
+
+ 1  Set periodic interrupt interval. Reads X as the interval in milliseconds.
+    If X is 0, periodic interrupts are disabled.
+
+ 2  Enable data interrupt. Reads X as the interrupt message. If X is
+    non-zero, interrupts are enabled with message X. If X is zero, interrupts
+    are disabled. When enabled, an interrupt is triggered whenever new
+    measurement data is available. Register A holds the drift movements
+    (rounded to whole length units) for axes A, B, C. Registers X, Y, Z hold
+    the rotational movements (rounded to hundredth of a degree per minute).
+    All values are signed.
+
+ 3  Read signed data. Sets A, B, C to the signed drift movements and X, Y, Z
+    to the signed rotational movements (hundredth of a degree per minute).
+
+ 4  Read unsigned data. Sets A, B, C to the unsigned drift movements and X, Y,
+    Z to the unsigned rotational movements.
+
+ 5  Read sign-only data. Sets A, B, C, X, Y, Z to 0 (positive) or 1 (negative)
+    indicating only the sign of each measurement.
+
+ 6  Read ABC movement. Sets A, B, C to the signed drift movements along axes
+    A, B, C.
+
+ 7  Read ABC rotation. Sets A, B, C to the signed rotational movements around
+    axes A, B, C.
+
+ 8  Read XYZ movement. Sets X, Y, Z to the signed drift movements along axes
+    X, Y, Z.
+
+ 9  Read XYZ rotation. Sets X, Y, Z to the signed rotational movements around
+    axes X, Y, Z.
+
+10  Read total movement and rotation. Computes the Pythagorean total of all
+    drift movements and stores it in B; computes the Pythagorean total of all
+    rotational movements and stores it in C.
+
+11  Set limits. Reads X as the minimum limit and Y as the maximum limit for
+    the selected measurement axis (B selects the axis: 0 = A, 1 = B, 2 = C,
+    3 = X, 4 = Y, 5 = Z). When a measurement exceeds the maximum limit or
+    falls below the minimum limit, an interrupt is fired (if interrupts are
+    enabled).
+
+12  Get state. Sets B to the current state code (see below).
+
+    .-------------. 
+----! STATE CODES !-------------------------------------------------------------
+    '-------------' 
+
+0x0000  OFFLINE          The device is powered off or not initialized.
+0x0001  MESSURING        The device is actively measuring.
+0x0002  READY            The device is initialized and ready for commands.
+0x0003  ERROR            A hardware or software error has occurred.
+0x0004  TILT_MOVEMENT    The device has detected a significant translational
+                         drift exceeding configured limits.
+0x0005  TILT_ROTATION    The device has detected a significant rotational
+                         movement exceeding configured limits.
+
+COPYRIGHT 1989 GME - GLASSWORKS MEASUREMENT EQUIPMENT
+ALL RIGHTS RESERVED
+DO NOT DISTRIBUTE
