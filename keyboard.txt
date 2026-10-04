@@ -1,6 +1,6 @@
 Name: Generic Keyboard (compatible)
 ID: 0x30cf7406
-Version: 1
+Version: 1.1
 
 Interrupts do different things depending on contents of the A register:
 
@@ -29,3 +29,9 @@ Key numbers are:
 	0x83: Arrow right
 	0x90: Shift
 	0x91: Control
+	0x1B: Escape
+
+Function keys are: (From Version 1.1)
+	0xA1: F1
+	...
+	0xAC: F12
