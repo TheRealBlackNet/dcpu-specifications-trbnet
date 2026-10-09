@@ -1,0 +1,320 @@
+==============================================================================
+  BPR-1 "Beeper" Lautsprecher
+  Technische Dokumentation, Version 1 (Entwurf)
+==============================================================================
+
+Name:           BPR-1 Beeper Speaker
+Hardware-ID:    0x42505231   ("BPR1")      -> A = 0x5231, B = 0x4250 bei HWQ
+Version:        0x0001                     -> C = 0x0001 bei HWQ
+Hersteller:     0x1EB37E91                 -> X = 0x7E91, Y = 0x1EB3 bei HWQ
+
+
+------------------------------------------------------------------------------
+1. Beschreibung
+------------------------------------------------------------------------------
+
+Der BPR-1 ist ein einfacher Ein-Kanal-Lautsprecher fuer Pieptoene und kurze
+Melodien. Er spielt immer genau einen Ton gleichzeitig, optional mit einer
+Warteschlange fuer bis zu 16 weitere Toene.
+
+  * 16 Lautstaerkestufen (0x0 - 0xF), logarithmisch
+  * 8 Wellenformen (0x0 - 0x7)
+  * Tonhoehe wahlweise als Notennummer (SET_TONE) oder in Hz (SET_FREQ_HZ)
+  * Tondauer in CPU-Zyklen (nicht in Echtzeit)
+  * Optionale Huellkurve, Tonhoehen-Gleiten und Interrupt bei Ende
+
+Das Geraet wird per HWI angesprochen. Das Register A enthaelt den Befehl,
+B und C die Parameter.
+
+
+------------------------------------------------------------------------------
+2. Befehle (HWI, Register A)
+------------------------------------------------------------------------------
+
+  A        Name              B                   C                 Rueckgabe
+  ------   ----------------  ------------------  ----------------  ----------
+  0x0000   GET_STATUS        -                   -                 B = Status
+                                                                   C = Anzahl
+                                                                       wartender
+                                                                       Toene
+  0x0001   SET_TONE          Note (0-127)        Dauer in Ticks    -
+  0x0002   SET_FREQ_HZ       Frequenz (8-20000)  Dauer in Ticks    -
+  0x0003   QUEUE_TONE        Note (0-127)        Dauer in Ticks    -
+  0x0004   QUEUE_FREQ_HZ     Frequenz (8-20000)  Dauer in Ticks    -
+  0x0005   STOP              -                   -                 -
+  0x0006   SET_VOLUME        Stufe (0x0-0xF)     -                 -
+  0x0007   SET_WAVEFORM      Wellenform (0-7)    -                 -
+  0x0008   SET_DUTY          Duty (0x0-0xF)      -                 -
+  0x0009   SET_ENVELOPE      Attack in Ticks     Release in Ticks  -
+  0x000A   SET_PITCH_SLIDE   Cent pro Tick       -                 -
+                             (16 Bit, signed)
+  0x000B   SET_INTERRUPT     Nachricht (0 = aus) -                 -
+  0x000C   GET_CAPS          -                   -                 B = Faehig-
+                                                                       keiten
+                                                                   C = 0x0F08
+  0xFFFF   RESET             -                   -                 -
+
+Register, die in der Spalte "Rueckgabe" nicht genannt sind, bleiben
+unveraendert.
+
+Bei einem Fehler (siehe Abschnitt 8) wird der Befehl ignoriert und das
+Fehler-Bit im Status gesetzt.
+
+
+------------------------------------------------------------------------------
+3. Befehle im Detail
+------------------------------------------------------------------------------
+
+GET_STATUS (0x0000)
+  Liefert in B den Status:
+
+    Bit 0 (0x0001)  Ein Ton wird gespielt
+    Bit 1 (0x0002)  Warteschlange ist leer
+    Bit 2 (0x0004)  Fehler seit dem letzten GET_STATUS
+
+  In C steht die Anzahl der wartenden Toene (ohne den laufenden Ton).
+  Das Fehler-Bit wird durch GET_STATUS geloescht.
+
+SET_TONE (0x0001)
+  Startet sofort einen Ton. Ein laufender Ton wird abgeloest und die
+  Warteschlange geleert. B ist die Notennummer (siehe Abschnitt 4), C die
+  Dauer in Ticks. C = 0 bedeutet: Ton klingt, bis er mit STOP oder einem
+  neuen SET_TONE / SET_FREQ_HZ beendet wird.
+
+SET_FREQ_HZ (0x0002)
+  Wie SET_TONE, aber B ist die Frequenz direkt in Hz (8 - 20000).
+
+QUEUE_TONE (0x0003), QUEUE_FREQ_HZ (0x0004)
+  Haengen einen Ton hinten an die Warteschlange (max. 16 Eintraege). Ist
+  gerade kein Ton aktiv, startet der Ton sofort. Anschliessende Toene
+  folgen lueckenlos, genau zum Zyklus, an dem der vorherige endet.
+  Hinweis: Ein Ton mit Dauer 0 haelt die Warteschlange an, bis er mit STOP
+  oder SET_TONE beendet wird.
+
+STOP (0x0005)
+  Beendet den aktuellen Ton und leert die Warteschlange. Es wird kein
+  Interrupt ausgeloest.
+
+SET_VOLUME (0x0006)
+  Setzt die Lautstaerke. Siehe Abschnitt 5.
+
+SET_WAVEFORM (0x0007)
+  Setzt die Wellenform. Siehe Abschnitt 6.
+
+SET_DUTY (0x0008)
+  Setzt das Tastverhaeltnis fuer die Wellenform 0x1 (Puls).
+  Tastverhaeltnis = (B + 1) / 32, also 3.1 % (0x0) bis 50 % (0xF).
+  Standard ist 0x7 (25 %).
+
+SET_ENVELOPE (0x0009)
+  B = Attack, C = Release, jeweils in Ticks.
+  Attack: die Lautstaerke steigt am Tonanfang linear von 0 auf den
+          eingestellten Wert.
+  Release: die Lautstaerke faellt vor dem Ende eines Tons mit endlicher
+          Dauer linear auf 0. (Bei Dauer 0 gibt es kein Release.)
+  0 schaltet die jeweilige Phase ab. Standard ist 0 / 0.
+
+SET_PITCH_SLIDE (0x000A)
+  B ist eine vorzeichenbehaftete 16-Bit-Zahl (Zweierkomplement): Cent pro
+  Tick (100 Cent = 1 Halbton). Die Tonhoehe aendert sich waehrend des Tons
+  kontinuierlich und startet bei jedem neuen Ton wieder bei der Ausgangs-
+  frequenz. Die Frequenz bleibt dabei im Bereich 8 - 20000 Hz.
+  0 schaltet das Gleiten ab. Standard ist 0.
+
+SET_INTERRUPT (0x000B)
+  B ist die Nachricht, die per CPU-Interrupt gesendet wird, sobald der
+  letzte Ton (inklusive Warteschlange) von selbst zu Ende ist. B = 0
+  schaltet den Interrupt ab. STOP, SET_TONE und RESET loesen keinen
+  Interrupt aus.
+
+GET_CAPS (0x000C)
+  Liefert in B die Faehigkeiten des Geraets (Bitmaske), in C die Grenzen:
+
+    B Bit 0 (0x0001)  SET_TONE / QUEUE_TONE vorhanden
+    B Bit 1 (0x0002)  SET_FREQ_HZ / QUEUE_FREQ_HZ vorhanden
+    B Bit 2 (0x0004)  Warteschlange
+    B Bit 3 (0x0008)  Pitch Slide
+    B Bit 4 (0x0010)  Huellkurve
+    B Bit 5 (0x0020)  Interrupt
+    B Bit 6 (0x0040)  Duty
+
+    C = 0x0F08  (hohes Byte: hoechste Lautstaerkestufe 0x0F,
+                 tiefes Byte: Anzahl Wellenformen 8)
+
+  Damit koennen Programme Varianten des BPR-1 erkennen, die nur die
+  Notennummer ODER nur die Hz-Eingabe beherrschen.
+
+RESET (0xFFFF)
+  Beendet den Ton, leert die Warteschlange und setzt alle Einstellungen auf
+  die Standardwerte (Abschnitt 7).
+
+
+------------------------------------------------------------------------------
+4. Tonhoehe und Dauer
+------------------------------------------------------------------------------
+
+Notennummer (SET_TONE, QUEUE_TONE)
+  Die Notennummer entspricht der MIDI-Zaehlung, also Halbtonschritten:
+
+        f = 440 Hz * 2 ^ ((Note - 69) / 12)
+
+    Note    Hex     Frequenz       Anmerkung
+    ------  ------  -------------  -------------------------
+       0    0x00        8.18 Hz    tiefste Note
+      24    0x18       32.70 Hz    C1
+      60    0x3C      261.63 Hz    C4 (mittleres C)
+      69    0x45      440.00 Hz    A4 (Kammerton)
+      72    0x48      523.25 Hz    C5
+      81    0x51      880.00 Hz    A5
+      93    0x5D     1760.00 Hz    A6
+     127    0x7F    12543.85 Hz    hoechste Note
+
+  Werte ueber 127 sind ein Fehler.
+
+Frequenz in Hz (SET_FREQ_HZ, QUEUE_FREQ_HZ)
+  Gueltig sind 8 bis 20000 (0x0008 bis 0x4E20). Andere Werte sind ein
+  Fehler.
+
+Dauer
+  Die Dauer wird in Ticks angegeben. 1 Tick sind 1000 CPU-Zyklen. Bei der
+  ueblichen Taktung von 100 kHz entspricht das 10 ms. Der Wertebereich
+  0x0001 - 0xFFFF entspricht 1000 bis 65 535 000 Zyklen. 0 bedeutet
+  unbegrenzt.
+
+  Die Dauer haengt am Zykluszaehler der CPU und nicht an der Echtzeit. Wird
+  die CPU schneller oder langsamer getaktet, aendert sich also die
+  hoerbare Tondauer, waehrend die Tonhoehe in Hz gleich bleibt. Steht die
+  CPU still, schreitet auch die Tondauer nicht voran.
+
+
+------------------------------------------------------------------------------
+5. Lautstaerke
+------------------------------------------------------------------------------
+
+16 Stufen, logarithmisch: jede Stufe senkt den Pegel um etwa 3 dB.
+
+    Amplitude = 2 ^ ((Stufe - 15) / 2)     (Stufe 0x0 = stumm)
+
+    Stufe   dB        Stufe   dB
+    ------  -------   ------  -------
+    0xF       0 dB    0x7     -24 dB
+    0xE      -3 dB    0x6     -27 dB
+    0xD      -6 dB    0x5     -30 dB
+    0xC      -9 dB    0x4     -33 dB
+    0xB     -12 dB    0x3     -36 dB
+    0xA     -15 dB    0x2     -39 dB
+    0x9     -18 dB    0x1     -42 dB
+    0x8     -21 dB    0x0     stumm
+
+Standard ist 0xC.
+
+
+------------------------------------------------------------------------------
+6. Wellenformen
+------------------------------------------------------------------------------
+
+    Nr.   Name                     Beschreibung
+    ----  -----------------------  ---------------------------------------
+    0x0   Rechteck                 Tastverhaeltnis 50 %
+    0x1   Puls                     Tastverhaeltnis ueber SET_DUTY
+    0x2   Dreieck
+    0x3   Saegezahn                steigend
+    0x4   Sinus
+    0x5   Rauschen (weiss)         15-Bit-Schieberegister (LFSR)
+    0x6   Rauschen (periodisch)    LFSR mit kurzer Periode (93 Schritte),
+                                   klingt metallisch
+    0x7   Treppe                   Dreieck in 16 Stufen (4 Bit)
+
+Bei den Rauschformen bestimmt die Frequenz, wie oft das Schieberegister
+weitergeschaltet wird. Tiefe Frequenzen klingen daher knatternd, hohe wie
+Rauschen. Eine Wellenformaenderung wirkt sofort, auch bei laufendem Ton.
+
+Standard ist 0x0 (Rechteck).
+
+
+------------------------------------------------------------------------------
+7. Standardwerte nach RESET
+------------------------------------------------------------------------------
+
+    Lautstaerke   0xC
+    Wellenform    0x0
+    Duty          0x7
+    Attack        0
+    Release       0
+    Pitch Slide   0
+    Interrupt     0 (aus)
+    Warteschlange leer, kein Ton
+
+
+------------------------------------------------------------------------------
+8. Fehler
+------------------------------------------------------------------------------
+
+Das Fehler-Bit (Status Bit 2) wird gesetzt bei:
+
+  * unbekanntem Befehl in A
+  * Befehl, den das Geraet nicht unterstuetzt (Variante, siehe Abschnitt 9)
+  * Parameter ausserhalb des gueltigen Bereichs
+  * QUEUE_TONE / QUEUE_FREQ_HZ bei voller Warteschlange (16 Eintraege)
+
+Der Befehl hat dann keine Wirkung.
+
+
+------------------------------------------------------------------------------
+9. Varianten
+------------------------------------------------------------------------------
+
+Das Geraet kann in vereinfachten Varianten gebaut werden, die dieselbe
+Hardware-ID verwenden und ueber GET_CAPS erkennbar sind:
+
+  * Nur Notennummer:  SET_TONE und QUEUE_TONE vorhanden, die Befehle
+                      0x0002 und 0x0004 sind ein Fehler.
+  * Nur Hz:           SET_FREQ_HZ und QUEUE_FREQ_HZ vorhanden, die Befehle
+                      0x0001 und 0x0003 sind ein Fehler.
+
+Alle uebrigen Befehle sind in jeder Variante gleich.
+
+
+------------------------------------------------------------------------------
+10. Beispiel
+------------------------------------------------------------------------------
+
+        ; Beeper (Geraetenummer in [beeper]) auf Lautstaerke 0xC stellen und
+        ; den Kammerton A4 fuer 50 Ticks (50000 Zyklen) spielen
+
+        SET A, 0x0006           ; SET_VOLUME
+        SET B, 0x000C
+        HWI [beeper]
+
+        SET A, 0x0001           ; SET_TONE
+        SET B, 69               ; A4 = 440 Hz
+        SET C, 50
+        HWI [beeper]
+
+        ; 1000 Hz fuer 30 Ticks
+        SET A, 0x0002           ; SET_FREQ_HZ
+        SET B, 1000
+        SET C, 30
+        HWI [beeper]
+
+        ; Warten, bis der Ton zu Ende ist
+:warten SET A, 0x0000           ; GET_STATUS
+        HWI [beeper]
+        IFB B, 0x0001           ; spielt noch?
+            SET PC, warten
+
+
+------------------------------------------------------------------------------
+11. Hinweise zur Emulation
+------------------------------------------------------------------------------
+
+  * Die Ausgabe wird in Echtzeit mit 44100 Hz erzeugt. Die Tondauer wird
+    sampleweise aus dem Zykluszaehler der CPU abgeleitet.
+  * Die Phase der Schwingung wird ueber Tonwechsel hinweg weitergefuehrt,
+    damit es zwischen Toenen nicht knackt. Zusaetzlich glaettet eine kurze
+    Rampe (ca. 3 ms) jede Lautstaerkeaenderung.
+  * Befehle wirken spaetestens im naechsten Audio-Block (ein paar
+    Millisekunden). Tondauern und Warteschlangenwechsel sind dagegen
+    zyklengenau.
+  * Steht die CPU laenger als etwa 0,2 s still, wird der Ton stummgeschaltet,
+    damit ein angehaltener Emulator nicht dauerhaft piept.
