@@ -6,7 +6,7 @@
 Name:           BPR-1 Beeper Speaker
 Hardware-ID:    0x42505231   ("BPR1")      -> A = 0x5231, B = 0x4250 bei HWQ
 Version:        0x0001                     -> C = 0x0001 bei HWQ
-Hersteller:     0x1EB37E91                 -> X = 0x7E91, Y = 0x1EB3 bei HWQ
+Hersteller:     0x1AA36E8F                 -> X = 0x7E91, Y = 0x1EB3 bei HWQ
 
 
 ------------------------------------------------------------------------------
