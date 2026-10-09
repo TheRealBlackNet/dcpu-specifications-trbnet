@@ -1,6 +1,6 @@
 ==============================================================================
   BPR-1 "Beeper" Lautsprecher
-  Technische Dokumentation, Version 1 (Entwurf)
+  Technische Dokumentation, Version 1
 ==============================================================================
 
 Name:           BPR-1 Beeper Speaker
@@ -14,8 +14,8 @@ Hersteller:     0x1EB37E91                 -> X = 0x7E91, Y = 0x1EB3 bei HWQ
 ------------------------------------------------------------------------------
 
 Der BPR-1 ist ein einfacher Ein-Kanal-Lautsprecher fuer Pieptoene und kurze
-Melodien. Er spielt immer genau einen Ton gleichzeitig, optional mit einer
-Warteschlange fuer bis zu 16 weitere Toene.
+Melodien. Er spielt immer genau einen Ton gleichzeitig,
+optional mit einer Warteschlange fuer bis zu 16 weitere Toene.
 
   * 16 Lautstaerkestufen (0x0 - 0xF), logarithmisch
   * 8 Wellenformen (0x0 - 0x7)

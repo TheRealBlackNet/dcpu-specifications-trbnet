@@ -1,0 +1,315 @@
+==============================================================================
+  BPR-1 "Beeper" Speaker
+  Technical Documentation, Version 1 (Draft)
+==============================================================================
+
+Name:           BPR-1 Beeper Speaker
+Hardware-ID:    0x42505231   ("BPR1")      -> A = 0x5231, B = 0x4250 at HWQ
+Version:        0x0001                     -> C = 0x0001 at HWQ
+Manufacturer:   0x1EB37E91                 -> X = 0x7E91, Y = 0x1EB3 at HWQ
+
+
+------------------------------------------------------------------------------
+1. Description
+------------------------------------------------------------------------------
+
+The BPR-1 is a simple single-channel speaker for piezo tones and short
+melodies. It always plays exactly one tone at a time, optionally with a
+queue for up to 16 additional tones.
+
+  * 16 volume levels (0x0 - 0xF), logarithmic
+  * 8 waveforms (0x0 - 0x7)
+  * Pitch selectable as note number (SET_TONE) or in Hz (SET_FREQ_HZ)
+  * Tone duration in CPU cycles (not in real time)
+  * Optional envelope, pitch slide and interrupt at end
+
+The device is addressed via HWI. Register A contains the command,
+B and C the parameters.
+
+
+------------------------------------------------------------------------------
+2. Commands (HWI, Register A)
+------------------------------------------------------------------------------
+
+  A        Name              B                   C                 Return
+  ------   ----------------  ------------------  ----------------  ----------
+  0x0000   GET_STATUS        -                   -                 B = Status
+                                                                   C = Number
+                                                                       of waiting
+                                                                       tones
+  0x0001   SET_TONE          Note (0-127)        Duration in ticks -
+  0x0002   SET_FREQ_HZ       Frequency (8-20000) Duration in ticks -
+  0x0003   QUEUE_TONE        Note (0-127)        Duration in ticks -
+  0x0004   QUEUE_FREQ_HZ     Frequency (8-20000) Duration in ticks -
+  0x0005   STOP              -                   -                 -
+  0x0006   SET_VOLUME        Level (0x0-0xF)     -                 -
+  0x0007   SET_WAVEFORM      Waveform (0-7)      -                 -
+  0x0008   SET_DUTY          Duty (0x0-0xF)      -                 -
+  0x0009   SET_ENVELOPE      Attack in ticks     Release in ticks  -
+  0x000A   SET_PITCH_SLIDE   Cents per tick      -                 -
+                             (16-bit, signed)
+  0x000B   SET_INTERRUPT     Message (0 = off)   -                 -
+  0x000C   GET_CAPS          -                   -                 B = Capabilities
+                                                                   C = 0x0F08
+  0xFFFF   RESET             -                   -                 -
+
+Registers not mentioned in the "Return" column remain unchanged.
+
+On an error (see section 8), the command is ignored and the error bit in the
+status is set.
+
+
+------------------------------------------------------------------------------
+3. Commands in Detail
+------------------------------------------------------------------------------
+
+GET_STATUS (0x0000)
+  Returns the status in B:
+
+    Bit 0 (0x0001)  A tone is playing
+    Bit 1 (0x0002)  Queue is empty
+    Bit 2 (0x0004)  Error since the last GET_STATUS
+
+  C contains the number of waiting tones (excluding the running tone).
+  The error bit is cleared by GET_STATUS.
+
+SET_TONE (0x0001)
+  Starts a tone immediately. A running tone is replaced and the queue is
+  cleared. B is the note number (see section 4), C the duration in ticks.
+  C = 0 means: the tone sounds until it is ended with STOP or a new
+  SET_TONE / SET_FREQ_HZ.
+
+SET_FREQ_HZ (0x0002)
+  Like SET_TONE, but B is the frequency directly in Hz (8 - 20000).
+
+QUEUE_TONE (0x0003), QUEUE_FREQ_HZ (0x0004)
+  Append a tone to the back of the queue (max. 16 entries). If no tone is
+  currently active, the tone starts immediately. Subsequent tones follow
+  seamlessly, exactly at the cycle at which the previous one ends.
+  Note: A tone with duration 0 halts the queue until it is ended with STOP
+  or SET_TONE.
+
+STOP (0x0005)
+  Ends the current tone and clears the queue. No interrupt is triggered.
+
+SET_VOLUME (0x0006)
+  Sets the volume. See section 5.
+
+SET_WAVEFORM (0x0007)
+  Sets the waveform. See section 6.
+
+SET_DUTY (0x0008)
+  Sets the duty cycle for waveform 0x1 (pulse).
+  Duty cycle = (B + 1) / 32, i.e. 3.1% (0x0) to 50% (0xF).
+  Default is 0x7 (25%).
+
+SET_ENVELOPE (0x0009)
+  B = Attack, C = Release, each in ticks.
+  Attack: the volume rises linearly from 0 to the set value at the start of
+          the tone.
+  Release: the volume falls linearly to 0 before the end of a tone with
+          finite duration. (For duration 0 there is no release.)
+  0 disables the respective phase. Default is 0 / 0.
+
+SET_PITCH_SLIDE (0x000A)
+  B is a signed 16-bit number (two's complement): cents per tick
+  (100 cents = 1 semitone). The pitch changes continuously during the tone
+  and starts again at the base frequency for each new tone. The frequency
+  remains within the range 8 - 20000 Hz.
+  0 disables the slide. Default is 0.
+
+SET_INTERRUPT (0x000B)
+  B is the message sent via CPU interrupt as soon as the last tone
+  (including queue) finishes by itself. B = 0 disables the interrupt.
+  STOP, SET_TONE and RESET do not trigger an interrupt.
+
+GET_CAPS (0x000C)
+  Returns the device capabilities in B (bitmask), the limits in C:
+
+    B Bit 0 (0x0001)  SET_TONE / QUEUE_TONE present
+    B Bit 1 (0x0002)  SET_FREQ_HZ / QUEUE_FREQ_HZ present
+    B Bit 2 (0x0004)  Queue
+    B Bit 3 (0x0008)  Pitch slide
+    B Bit 4 (0x0010)  Envelope
+    B Bit 5 (0x0020)  Interrupt
+    B Bit 6 (0x0040)  Duty
+
+    C = 0x0F08  (high byte: highest volume level 0x0F,
+                 low byte: number of waveforms 8)
+
+  This allows programs to detect BPR-1 variants that support only note
+  number OR only Hz input.
+
+RESET (0xFFFF)
+  Ends the tone, clears the queue and sets all settings to the default
+  values (section 7).
+
+
+------------------------------------------------------------------------------
+4. Pitch and Duration
+------------------------------------------------------------------------------
+
+Note number (SET_TONE, QUEUE_TONE)
+  The note number corresponds to MIDI counting, i.e. semitone steps:
+
+        f = 440 Hz * 2 ^ ((Note - 69) / 12)
+
+    Note    Hex     Frequency     Remark
+    ------  ------  -------------  -------------------------
+       0    0x00        8.18 Hz    lowest note
+      24    0x18       32.70 Hz    C1
+      60    0x3C      261.63 Hz    C4 (middle C)
+      69    0x45      440.00 Hz    A4 (concert pitch)
+      72    0x48      523.25 Hz    C5
+      81    0x51      880.00 Hz    A5
+      93    0x5D     1760.00 Hz    A6
+     127    0x7F    12543.85 Hz    highest note
+
+  Values above 127 are an error.
+
+Frequency in Hz (SET_FREQ_HZ, QUEUE_FREQ_HZ)
+  Valid are 8 to 20000 (0x0008 to 0x4E20). Other values are an error.
+
+Duration
+  Duration is given in ticks. 1 tick is 1000 CPU cycles. At the usual clock
+  rate of 100 kHz, this corresponds to 10 ms. The range 0x0001 - 0xFFFF
+  corresponds to 1000 to 65,535,000 cycles. 0 means unlimited.
+
+  Duration depends on the CPU cycle counter and not on real time. If the CPU
+  is clocked faster or slower, the audible tone duration changes while the
+  pitch in Hz stays the same. If the CPU is stopped, the tone duration does
+  not advance either.
+
+
+------------------------------------------------------------------------------
+5. Volume
+------------------------------------------------------------------------------
+
+16 levels, logarithmic: each level lowers the level by about 3 dB.
+
+    Amplitude = 2 ^ ((Level - 15) / 2)     (Level 0x0 = mute)
+
+    Level   dB        Level   dB
+    ------  -------   ------  -------
+    0xF       0 dB    0x7     -24 dB
+    0xE      -3 dB    0x6     -27 dB
+    0xD      -6 dB    0x5     -30 dB
+    0xC      -9 dB    0x4     -33 dB
+    0xB     -12 dB    0x3     -36 dB
+    0xA     -15 dB    0x2     -39 dB
+    0x9     -18 dB    0x1     -42 dB
+    0x8     -21 dB    0x0     mute
+
+Default is 0xC.
+
+
+------------------------------------------------------------------------------
+6. Waveforms
+------------------------------------------------------------------------------
+
+    No.   Name                     Description
+    ----  -----------------------  ---------------------------------------
+    0x0   Square                   Duty cycle 50%
+    0x1   Pulse                    Duty cycle via SET_DUTY
+    0x2   Triangle
+    0x3   Sawtooth                 rising
+    0x4   Sine
+    0x5   Noise (white)            15-bit shift register (LFSR)
+    0x6   Noise (periodic)         LFSR with short period (93 steps),
+                                   sounds metallic
+    0x7   Staircase                Triangle in 16 steps (4-bit)
+
+For the noise forms, the frequency determines how often the shift register
+is advanced. Low frequencies therefore sound crackling, high ones like
+noise. A waveform change takes effect immediately, even during a running
+tone.
+
+Default is 0x0 (square).
+
+
+------------------------------------------------------------------------------
+7. Default values after RESET
+------------------------------------------------------------------------------
+
+    Volume         0xC
+    Waveform       0x0
+    Duty           0x7
+    Attack         0
+    Release        0
+    Pitch Slide    0
+    Interrupt      0 (off)
+    Queue empty, no tone
+
+
+------------------------------------------------------------------------------
+8. Errors
+------------------------------------------------------------------------------
+
+The error bit (status bit 2) is set on:
+
+  * unknown command in A
+  * command not supported by the device (variant, see section 9)
+  * parameter outside the valid range
+  * QUEUE_TONE / QUEUE_FREQ_HZ with full queue (16 entries)
+
+The command then has no effect.
+
+
+------------------------------------------------------------------------------
+9. Variants
+------------------------------------------------------------------------------
+
+The device can be built in simplified variants that use the same hardware ID
+and are detectable via GET_CAPS:
+
+  * Note number only:  SET_TONE and QUEUE_TONE present, commands 0x0002 and
+                       0x0004 are an error.
+  * Hz only:           SET_FREQ_HZ and QUEUE_FREQ_HZ present, commands
+                       0x0001 and 0x0003 are an error.
+
+All other commands are the same in every variant.
+
+
+------------------------------------------------------------------------------
+10. Example
+------------------------------------------------------------------------------
+
+        ; Set beeper (device number in [beeper]) to volume 0xC and
+        ; play concert pitch A4 for 50 ticks (50000 cycles)
+
+        SET A, 0x0006           ; SET_VOLUME
+        SET B, 0x000C
+        HWI [beeper]
+
+        SET A, 0x0001           ; SET_TONE
+        SET B, 69               ; A4 = 440 Hz
+        SET C, 50
+        HWI [beeper]
+
+        ; 1000 Hz for 30 ticks
+        SET A, 0x0002           ; SET_FREQ_HZ
+        SET B, 1000
+        SET C, 30
+        HWI [beeper]
+
+        ; Wait until the tone is finished
+:wait   SET A, 0x0000           ; GET_STATUS
+        HWI [beeper]
+        IFB B, 0x0001           ; still playing?
+            SET PC, wait
+
+
+------------------------------------------------------------------------------
+11. Notes on Emulation
+------------------------------------------------------------------------------
+
+  * Output is generated in real time at 44100 Hz. The tone duration is
+    derived sample-wise from the CPU cycle counter.
+  * The phase of the oscillation is continued across tone changes so that
+    there are no clicks between tones. Additionally, a short ramp (about
+    3 ms) smooths every volume change.
+  * Commands take effect at the latest in the next audio block (a few
+    milliseconds). Tone durations and queue changes, however, are
+    cycle-accurate.
+  * If the CPU stands still for longer than about 0.2 s, the tone is muted
+    so that a halted emulator does not beep continuously.
