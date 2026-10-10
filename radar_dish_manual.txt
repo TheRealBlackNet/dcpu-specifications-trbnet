@@ -1,0 +1,76 @@
+// displaying now 
+// Radar Dish Manual V1.0
+// Start printing...
+
+// ┌┐└┘├┤┬┴┼ ═║╒╓╔╕╗╙╚╛╜╝╞╟ ╡╣╤╥╦╧╨╩ ╪ ╬─ │─ │─╢    │─╢┤├
+
+╔══════════════════════╤═════════════════════════════════════════════════════════════════════╗
+║                      │                              ┌┐    ┌┐────┐─┐   ┌─┐                  ║
+║Device ID:            │ 0xC7C8DE39                   ││    ││───┐│ └┐ ┌┘ │                  ║
+║Versionnumber:        │ 0x0065                       ││    ││───┘│─┐└─┘┌┐│                  ║
+║Manufacturer:         │ 0x0000572F                   ││    ││───┐│ └───┘││                  ║
+║                      │ United Arms Manufactorers    │└────┘│   ││      ││                  ║
+║                      │                              └──────┘   └┘      └┘                  ║
+║                      │                                                                     ║
+║Name:                 │ Interplanetar Spaceship Radar System - 65 kilometer range           ║
+║                      │                                                                     ║
+╟──────────────────────┼──────┬──────────────────────────────────────────────────────────────╢
+║Commands HWI:         │Reg A:│Parameters:                                                   ║
+╟──────────────────────┼──────┼───┬──────────┬───────────────────────────────────────────────╢
+║set radar speed\range │0x0010│IN │B         │ 0x0000 offline                                ║
+║                      │      │   │          │ Format: 0xIJJJ                                ║
+║                      │      │   │          │-I is speed from 1-F with                      ║
+║                      │      │   │          │ 1 is 1/min and F is 16/min                    ║
+║                      │      │   │          │-J is the range from 0x0001                    ║
+║                      │      │   │          │ minimum of 10 meters to                       ║
+║                      │      │   │          │ 0x0FFF maximum 65 kilo meter                  ║
+╟──────────────────────┼──────┼───┼──────────┼───────────────────────────────────────────────╢
+║get current count     │0x0080│OUT│B         │ is now set to the current count               ║
+║                      │      │   │          │ max 0xFFFF elements. Sorted by closest.       ║
+╟──────────────────────┼──────┼───┼──────────┼───────────────────────────────────────────────╢
+║get posistion of I    │0x00F1│IN │I         │ the index of the requested radar ping         ║
+║                      │      │OUT│X,Y,Z     │                                               ║
+║                      │      │   │          │-X direction in ship horizon Front 0x0000      ║
+║                      │      │   │          │ and 0xFFFF 360° degree of the scan (unsigned) ║
+║                      │      │   │          │-Y Angle Up 0x0000 in the horizon              ║
+║                      │      │   │          │   0x7FFF 90 degree Up                         ║
+║                      │      │   │          │   0x8000 90 degree Down (singed)              ║
+║                      │      │   │          │-Z 0x0000 distance (unsinged) in Meter         ║
+║                      │      │   │          │   0xFFFF for 65.535 meter ~ 65km.             ║
+╟──────────────────────┼──────┼───┼──────────┼───────────────────────────────────────────────╢
+║get data of I         │0x00D1│IN │I         │ the index of the requested radar ping         ║
+║                      │      │OUT│X,Y       │-X,Y ID of the object stay the same for        ║
+║                      │      │   │          │ tracking                                      ║
+║                      │      │OUT│Z         │ Size of object                                ║
+╟──────────────────────┼──────┼───┼──────────┼───────────────────────────────────────────────╢
+║get posistion X,Y     │0x00D2│IN │X,Y       │ the id of the requested radar ping            ║
+║                      │      │OUT│X,Y,Z     │                                               ║
+║                      │      │   │          │-X direction in ship horizon Front 0x0000      ║
+║                      │      │   │          │ and 0xFFFF 360° degree of the scan (unsigned) ║
+║                      │      │   │          │-Y Angle Up 0x0000 in the horizon              ║
+║                      │      │   │          │   0x7FFF 90 degree Up                         ║
+║                      │      │   │          │   0x8000 90 degree Down (singed)              ║
+║                      │      │   │          │-Z 0x0000 distance (unsinged) in Meter         ║
+║                      │      │   │          │   0xFFFF for 65.535 meter ~ 65km.             ║
+╟──────────────────────┼──────┼───┼──────────┼───────────────────────────────────────────────╢
+║get data of X,Y       │0x00D2│IN │X,Y       │ the id of the requested radar ping            ║
+║                      │      │OUT│X,Y       │-X,Y ID of the object stay the same for        ║
+║                      │      │   │          │ tracking                                      ║
+║                      │      │OUT│Z         │ Size of object                                ║
+║                      │      │   │          │                                               ║
+╟──────────────────────┴──────┴───┴──────────┴───────────────────────────────────────────────╢
+║(just in case if a version with more radar range then 65 kilometer its 100% of that Range)  ║
+║                                                                                            ║
+║The radar scans clockwise the space around the ship seen from the top.                      ║
+║When a element is no longer present and a Index is fetched register X,Y,Z is set to zeros.  ║
+║                                                                                            ║
+║The Radar will use more power with more speed and max distance set.                         ║
+╚════════════════════════════════════════════════════════════════════════════════════════════╝
+
+Notes: angles in the XYZ will be rounded on output 
+User is responsible for tracking objects.
+The "Size of object" is a collision sphere that engulves the object
+
+
+// Stop printing...
+// END OF LINE
