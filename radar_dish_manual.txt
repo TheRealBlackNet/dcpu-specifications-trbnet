@@ -15,57 +15,113 @@
 ║Name:                 │ Interplanetar Spaceship Radar System - 65 kilometer range           ║
 ║                      │                                                                     ║
 ╟──────────────────────┼──────┬──────────────────────────────────────────────────────────────╢
-║Commands HWI:         │Reg A:│Parameters:                                                   ║
+║Commands HWI:         │Reg A:│Parameters registers:                                         ║
 ╟──────────────────────┼──────┼───┬──────────┬───────────────────────────────────────────────╢
 ║set radar speed\range │0x0010│IN │B         │ 0x0000 offline                                ║
-║                      │      │   │          │ Format: 0xIJJJ                                ║
-║                      │      │   │          │-I is speed from 1-F with                      ║
-║                      │      │   │          │ 1 is 1/min and F is 16/min                    ║
-║                      │      │   │          │-J is the range from 0x0001                    ║
-║                      │      │   │          │ minimum of 10 meters to                       ║
-║                      │      │   │          │ 0x0FFF maximum 65 kilo meter                  ║
+║                      │      │   │          │ 0xSAAR FORMAT                                 ║
+║                      │      │   │          │ S - is rotation speed from 1-F with           ║
+║                      │      │   │          │     0x0001 is 1/min and 0x000F is 15/min      ║
+║                      │      │   │          │ AA- is angle from  "00" in degree             ║
+║                      │      │   │          │     up to "B4" 180° to both sides of the      ║
+║                      │      │   │          │     front of the ship with B4 having a 360°   ║
+║                      │      │   │          │     full scan 180 left and right              ║
+║                      │      │   │          │ R - is the range setting from                 ║
+║                      │      │   │          │     0x1 minimum of 10 meters                  ║
+║                      │      │   │          │     0x2 of    150 meters                      ║
+║                      │      │   │          │     0x3 of    500 meters                      ║
+║                      │      │   │          │     0x4 of  1.000 meters                      ║
+║                      │      │   │          │     0x5 of  2.500 meters                      ║
+║                      │      │   │          │     0x6 of  5.000 meters                      ║
+║                      │      │   │          │     0x7 of 10.000 meters                      ║
+║                      │      │   │          │     0x8 of 15.000 meters                      ║
+║                      │      │   │          │     0x9 of 20.000 meters                      ║
+║                      │      │   │          │     0xA of 30.000 meters                      ║
+║                      │      │   │          │     0xB of 30.000 meters                      ║
+║                      │      │   │          │     0xC of 40.000 meters                      ║
+║                      │      │   │          │     0xD of 50.000 meters                      ║
+║                      │      │   │          │     0xE of 65.000 meters                      ║
+║                      │      │   │          │     0xF maximum 65.535 meters                 ║
 ╟──────────────────────┼──────┼───┼──────────┼───────────────────────────────────────────────╢
 ║get current count     │0x0080│OUT│B         │ is now set to the current count               ║
 ║                      │      │   │          │ max 0xFFFF elements. Sorted by closest.       ║
 ╟──────────────────────┼──────┼───┼──────────┼───────────────────────────────────────────────╢
-║get posistion of I    │0x00F1│IN │I         │ the index of the requested radar ping         ║
+║get position of I     │0x00F1│IN │I         │ I the index of the requested radar ping       ║
+║                      │      │OUT│X,Y,Z     │ Outputs:                                      ║
+║                      │      │   │          │ X - direction in ship horizon Front 0x0000    ║
+║                      │      │   │          │     and 0x8CA0 360° degree of the scan        ║
+║                      │      │   │          │     so each step is 0.01 degree (unsigned)    ║
+║                      │      │   │          │ Y - Angle Up 0x0000 in the horizon            ║
+║                      │      │   │          │     0x2328 90 degree Up step is 0.01 degree   ║
+║                      │      │   │          │     0xDCD8 90 degree Down (singed)            ║
+║                      │      │   │          │ Z - 0x0000 distance (unsinged) in Meter       ║
+║                      │      │   │          │     0xFFFF for 65.535 meter                   ║
+║                      │      │   │          │     to the closest point of the object        ║
+╟──────────────────────┼──────┼───┼──────────┼───────────────────────────────────────────────╢
+║get position by B,C   │0x00D1│IN │B,C       │ the id of the requested radar ping            ║
 ║                      │      │OUT│X,Y,Z     │                                               ║
-║                      │      │   │          │-X direction in ship horizon Front 0x0000      ║
-║                      │      │   │          │ and 0xFFFF 360° degree of the scan (unsigned) ║
-║                      │      │   │          │-Y Angle Up 0x0000 in the horizon              ║
-║                      │      │   │          │   0x7FFF 90 degree Up                         ║
-║                      │      │   │          │   0x8000 90 degree Down (singed)              ║
-║                      │      │   │          │-Z 0x0000 distance (unsinged) in Meter         ║
-║                      │      │   │          │   0xFFFF for 65.535 meter ~ 65km.             ║
+║                      │      │   │          │ X - direction in ship horizon Front 0x0000    ║
+║                      │      │   │          │     and 0x8CA0 360° degree of the scan        ║
+║                      │      │   │          │     so each step is 0.01 degree (unsigned)    ║
+║                      │      │   │          │ Y - Angle Up 0x0000 in the horizon            ║
+║                      │      │   │          │     0x2328 90 degree Up step is 0.01 degree   ║
+║                      │      │   │          │     0xDCD8 90 degree Down (singed)            ║
+║                      │      │   │          │ Z - 0x0000 distance (unsinged) in Meter       ║
+║                      │      │   │          │     0xFFFF for 65.535 meter ~ 65km.           ║
+║                      │      │   │          │     to the closest point of the object        ║
 ╟──────────────────────┼──────┼───┼──────────┼───────────────────────────────────────────────╢
-║get data of I         │0x00D1│IN │I         │ the index of the requested radar ping         ║
-║                      │      │OUT│X,Y       │-X,Y ID of the object stay the same for        ║
-║                      │      │   │          │ tracking                                      ║
-║                      │      │OUT│Z         │ Size of object                                ║
+║get data of I         │0x00F2│IN │I         │ the index of the requested radar ping         ║
+║                      │      │OUT│B,C       │B,C- id of the object stay the same for        ║
+║                      │      │   │          │     tracking a object even the Index changes  ║
+║                      │      │OUT│Z         │ Z - radius of object in meters                ║
+║                      │      │   │          │     the sphere encloses the entire object     ║
 ╟──────────────────────┼──────┼───┼──────────┼───────────────────────────────────────────────╢
-║get posistion X,Y     │0x00D2│IN │X,Y       │ the id of the requested radar ping            ║
-║                      │      │OUT│X,Y,Z     │                                               ║
-║                      │      │   │          │-X direction in ship horizon Front 0x0000      ║
-║                      │      │   │          │ and 0xFFFF 360° degree of the scan (unsigned) ║
-║                      │      │   │          │-Y Angle Up 0x0000 in the horizon              ║
-║                      │      │   │          │   0x7FFF 90 degree Up                         ║
-║                      │      │   │          │   0x8000 90 degree Down (singed)              ║
-║                      │      │   │          │-Z 0x0000 distance (unsinged) in Meter         ║
-║                      │      │   │          │   0xFFFF for 65.535 meter ~ 65km.             ║
-╟──────────────────────┼──────┼───┼──────────┼───────────────────────────────────────────────╢
-║get data of X,Y       │0x00D2│IN │X,Y       │ the id of the requested radar ping            ║
-║                      │      │OUT│X,Y       │-X,Y ID of the object stay the same for        ║
-║                      │      │   │          │ tracking                                      ║
-║                      │      │OUT│Z         │ Size of object                                ║
+║get data by B,C       │0x00D2│IN │B,C       │ the id of the requested radar ping            ║
+║                      │      │OUT│X,Y       │X,Y- ID of the object stay the same for        ║
+║                      │      │   │          │     tracking a object even the Index changes  ║
+║                      │      │OUT│Z         │ Z - radius of object in meters                ║
+║                      │      │   │          │     the sphere encloses the entire object     ║
 ║                      │      │   │          │                                               ║
 ╟──────────────────────┴──────┴───┴──────────┴───────────────────────────────────────────────╢
-║(just in case if a version with more radar range then 65 kilometer its 100% of that Range)  ║
-║                                                                                            ║
 ║The radar scans clockwise the space around the ship seen from the top.                      ║
 ║When a element is no longer present and a Index is fetched register X,Y,Z is set to zeros.  ║
+║Same result when a id is given that left the radar space                                    ║
 ║                                                                                            ║
 ║The Radar will use more power with more speed and max distance set.                         ║
 ╚════════════════════════════════════════════════════════════════════════════════════════════╝
+
+;
+; EXAMPLE
+;
+
+:DEV_RADAR DAT 0xFFFF
+; find_devices
+
+SET B, 0xFB4F   ; max speed and distance
+SET A, 0x0010   ; call set radar speed\range
+HWI [DEV_RADAR] ; interupt - void
+
+SET A, 0x0080   ; call get current count
+HWI [DEV_RADAR] ; interupt - now in B
+SET I, 0x0000   ; for (int i = 0 ; ...
+:loop
+    IFE I, B            ; for (int i = 0; i < b; ... with if equal
+        SET PC, end
+
+    SET A, 0x00F2       ; call get data of I
+    HWI [DEV_RADAR]     ; Z is size AB is the ID of the object
+    
+	;SET A, 0x00D1		; call get position by B,C
+	; or 
+    SET A, 0x00F1		; call get position by I
+	
+	;X,Y,Z is now the location 
+	; maybe to be displayed on sped-3
+	
+    
+    ADD I, 1            ; for (int i = 0; i < b; i++)1
+    SET PC, loop
+:end
+
 
 Notes: angles in the XYZ will be rounded on output 
 User is responsible for tracking objects.
